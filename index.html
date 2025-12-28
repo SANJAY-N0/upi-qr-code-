@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>UPI Payment with Status</title>
+  <title>UPI Payment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #020617;
+      background: #0f172a;
       color: #fff;
       display: flex;
       justify-content: center;
@@ -17,20 +17,23 @@
     }
 
     .card {
-      background: #0f172a;
-      padding: 22px;
+      background: #111827;
+      padding: 24px;
       border-radius: 18px;
       width: 100%;
-      max-width: 420px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      max-width: 400px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.5);
     }
 
-    h2 { text-align: center; margin-bottom: 14px; }
+    h2 {
+      text-align: center;
+      margin-bottom: 16px;
+    }
 
     input {
       width: 100%;
       padding: 12px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       border-radius: 10px;
       border: none;
       font-size: 15px;
@@ -42,18 +45,20 @@
       padding: 12px;
       border-radius: 12px;
       border: none;
+      font-size: 15px;
       font-weight: bold;
       cursor: pointer;
-      font-size: 15px;
     }
 
-    .gen { background: #22c55e; color: #000; }
-    .confirm { background: #facc15; color: #000; margin-top: 10px; }
-    .success { background: #16a34a; color: #fff; margin-top: 10px; }
+    .gen {
+      background: #22c55e;
+      color: #000;
+      margin-bottom: 12px;
+    }
 
     .apps {
       display: grid;
-      grid-template-columns: repeat(2,1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 10px;
       margin-top: 12px;
     }
@@ -66,111 +71,95 @@
     #qr {
       display: flex;
       justify-content: center;
-      margin-top: 14px;
+      margin-top: 16px;
     }
 
-    .status {
-      margin-top: 14px;
-      padding: 10px;
-      border-radius: 10px;
+    .note {
       text-align: center;
-      font-size: 14px;
-    }
-
-    .pending { background: #78350f; }
-    .done { background: #14532d; }
-
-    .txn {
       font-size: 13px;
-      opacity: .85;
-      margin-top: 6px;
-      text-align: center;
+      margin-top: 10px;
+      opacity: 0.7;
     }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>UPI Payment</h2>
+  <div class="card">
+    <h2>UPI Payment</h2>
 
-  <input id="upi" placeholder="UPI ID (name@bank)" />
-  <input id="name" placeholder="Payee Name" />
-  <input id="amount" placeholder="Amount (optional)" />
+    <input id="upi" placeholder="UPI ID (name@bank)" />
+    <input id="name" placeholder="Payee Name" />
+    <input id="amount" placeholder="Amount (optional)" />
 
-  <button class="gen" onclick="generate()">Generate Payment</button>
+    <button class="gen" onclick="generateQR()">Generate QR</button>
 
-  <div id="qr"></div>
+    <div id="qr"></div>
 
-  <div class="apps" id="apps">
-    <button class="gpay" onclick="pay('gpay')">Google Pay</button>
-    <button class="phonepe" onclick="pay('phonepe')">PhonePe</button>
-    <button class="paytm" onclick="pay('paytm')">Paytm</button>
-    <button class="any" onclick="pay('any')">Any UPI</button>
+    <div class="apps" id="apps">
+      <button class="gpay" onclick="pay('gpay')">Google Pay</button>
+      <button class="phonepe" onclick="pay('phonepe')">PhonePe</button>
+      <button class="paytm" onclick="pay('paytm')">Paytm</button>
+      <button class="any" onclick="pay('any')">Any UPI App</button>
+    </div>
+
+    <div class="note">
+      Works best on Android • Desktop won’t open UPI apps
+    </div>
   </div>
 
-  <div id="status"></div>
-</div>
+  <!-- QR Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+  <script>
+    function buildUPI() {
+      const upi = document.getElementById("upi").value.trim();
+      const name = document.getElementById("name").value.trim();
+      const amount = document.getElementById("amount").value.trim();
 
-<script>
-let txnId = null;
-let upiURL = null;
+      if (!upi || !name) {
+        alert("UPI ID and Name are required");
+        return null;
+      }
 
-function generate() {
-  const upi = document.getElementById("upi").value.trim();
-  const name = document.getElementById("name").value.trim();
-  const amount = document.getElementById("amount").value.trim();
+      let url = `upi://pay?pa=${encodeURIComponent(upi)}&pn=${encodeURIComponent(name)}&cu=INR`;
+      if (amount) url += `&am=${amount}`;
 
-  if (!upi || !name) {
-    alert("UPI ID and Name required");
-    return;
-  }
+      return { upi, name, amount, url };
+    }
 
-  txnId = "TXN" + Date.now();
+    function generateQR() {
+      const data = buildUPI();
+      if (!data) return;
 
-  upiURL = `upi://pay?pa=${encodeURIComponent(upi)}&pn=${encodeURIComponent(name)}&cu=INR&tr=${txnId}&tn=Order-${txnId}`;
-  if (amount) upiURL += `&am=${amount}`;
+      const qrBox = document.getElementById("qr");
+      qrBox.innerHTML = "";
 
-  document.getElementById("qr").innerHTML = "";
-  new QRCode("qr", { text: upiURL, width: 220, height: 220 });
+      new QRCode(qrBox, {
+        text: data.url,
+        width: 220,
+        height: 220
+      });
+    }
 
-  document.getElementById("status").innerHTML = `
-    <div class="status pending">
-      ⏳ Payment Pending<br>
-      <button class="confirm" onclick="markPaid()">I've Paid</button>
-      <div class="txn">Transaction ID: ${txnId}</div>
-    </div>
-  `;
-}
+    function pay(app) {
+      const data = buildUPI();
+      if (!data) return;
 
-function pay(app) {
-  if (!upiURL) return;
+      const links = {
+        gpay: `tez://upi/pay?pa=${data.upi}&pn=${data.name}&am=${data.amount}&cu=INR`,
+        phonepe: `phonepe://pay?pa=${data.upi}&pn=${data.name}&am=${data.amount}&cu=INR`,
+        paytm: `paytmmp://pay?pa=${data.upi}&pn=${data.name}&am=${data.amount}&cu=INR`,
+        any: data.url
+      };
 
-  const deepLinks = {
-    gpay: upiURL.replace("upi://", "tez://"),
-    phonepe: upiURL.replace("upi://", "phonepe://"),
-    paytm: upiURL.replace("upi://", "paytmmp://"),
-    any: upiURL
-  };
+      window.location.href = links[app] || data.url;
+    }
 
-  window.location.href = deepLinks[app] || upiURL;
-}
-
-function markPaid() {
-  document.getElementById("status").innerHTML = `
-    <div class="status done">
-      ✅ Payment Submitted<br>
-      Awaiting verification
-      <div class="txn">Transaction ID: ${txnId}</div>
-    </div>
-  `;
-}
-
-if (!/Android/i.test(navigator.userAgent)) {
-  document.getElementById("apps").style.display = "none";
-}
-</script>
+    // Hide app buttons on desktop
+    if (!/Android/i.test(navigator.userAgent)) {
+      document.getElementById("apps").style.display = "none";
+    }
+  </script>
 
 </body>
 </html>
